@@ -1,12 +1,16 @@
 
 #if defined(ESP8266)
-#pragma message "ESP8266 stuff happening!"
+  #pragma message "ESP8266 stuff happening!"
+  #include <ESP8266WiFi.h>
+  #include <ESP8266WebServer.h>
+  const int CS = 16;
 #elif defined(ESP32)
   #pragma message "ESP32 stuff happening!"
   #include <WiFi.h>
   #include <WebServer.h>
   WebServer server(80);
   WiFiClient client;
+  const int CS = 10;
 #else
 #error "This ain't a ESP8266 or ESP32, dumbo!"
 #endif
@@ -18,7 +22,7 @@
 #include "Arducam_Mega.h"
 
 
-const int CS = 10;
+
 
 
 DNSServer dnsServer;
@@ -74,11 +78,19 @@ const char* htmlPage = R"rawliteral(
     .then(response =>  response.text())
   }
   </script>
-
-  <html><body>
+  <html>
+  <style>
+   .conatiner{
+       display: flex;
+       align-items: center;
+   }
+  </style>
+  <body>
   <h1>ESP8266 Camera Stream</h1>
-  <img src='/stream' />
-  <button onclick = "buttonClick()">Stop Stream</button>
+  <div class="conatiner">
+  <img src='/stream' /> 
+  <button style="height:320px; width:320px;" onclick = "buttonClick()">Stop Stream</button>
+  </div>
   </body></html>
 
 )rawliteral";
@@ -114,9 +126,11 @@ void loginInspecifictWLan(char* WLan_Name, char* WLan_Password)
 
 void hotspot() 
 {
-  if (WiFi.status() == WL_CONNECTED) {
+  if (WiFi.status() == WL_CONNECTED) 
+  {
     return;
   }
+  WiFi.disconnect(true);
   WiFi.softAP(ssid, password);
 
   dnsServer.start(53, "*", WiFi.softAPIP());
@@ -156,6 +170,16 @@ void handleStream()
   cameraInstance = myCAM.getCameraInstance();
 }
 
+void handleButtonStopStream()
+{  
+  streamStart=false;
+  Serial.print("ende Bild ");
+  client.flush();
+  client.print("\r\n");
+  client.stop();
+  server.send(200, "text/plain", "OK Stream Button"); 
+}
+
 void readPicture()
 {
   if(streamStart==false)
@@ -178,14 +202,10 @@ void readPicture()
   }
 
   client.write(&buff[0], rtLength);
-  client.flush();
+  //client.flush();
 
   if (check == 0) 
-  {
-    //counter++;
-    //Serial.print(counter);
-    //ende und neu start
-    
+  {    
     client.flush();
     client.print("\r\n");
 
@@ -205,13 +225,13 @@ void setup()
   Serial.begin(115200);
   Serial.println("Start");
 
-  //loginInspecifictWLan("Vodafone-BE2C", "q49adKnc4bPka7bp");
-  loginInspecifictWLan("Com2u.de.WLAN2","SOMMERREGEN05");
+
+  //loginInspecifictWLan("WLAN Name","Password");
   hotspot();
 
   server.on("/", handleRoot);
   server.on("/stream", handleStream);
-  //server.on("/buttonstopstream", handleButtonStopStream);
+  server.on("/buttonstopstream", handleButtonStopStream);
   server.onNotFound(handleNotFound);
 
   server.begin();
@@ -229,5 +249,5 @@ void loop()
   dnsServer.processNextRequest();
   server.handleClient();
   readPicture();
-  delay(10);
+  delay(1);
 }
