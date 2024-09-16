@@ -1,20 +1,38 @@
-#include <WiFi.h>
+
+#if defined(ESP8266)
+#pragma message "ESP8266 stuff happening!"
+#elif defined(ESP32)
+  #pragma message "ESP32 stuff happening!"
+  #include <WiFi.h>
+  #include <WebServer.h>
+  WebServer server(80);
+  WiFiClient client;
+#else
+#error "This ain't a ESP8266 or ESP32, dumbo!"
+#endif
+
+
+
+
 #include <DNSServer.h>
-#include <WebServer.h>
 #include "Arducam_Mega.h"
 
-WebServer server(80);
-DNSServer dnsServer;
-const char* ssid = "robsrob";
-const char* password = "";
-WiFiClient client;
 
-#define READ_IMAGE_LENGTH           255
 const int CS = 10;
+
+
+DNSServer dnsServer;
+const char* ssid = "ArduWeb";
+const char* password = "";
+#define READ_IMAGE_LENGTH           255
 Arducam_Mega myCAM(CS);
 bool streamStart=false;
 ArducamCamera* cameraInstance;
+unsigned long startMillis = 0;
 
+
+////////////////////////////////////////////
+//esp32S3 Dev Modul
 /*
 Camera pin    Development board pins
 VCC           3V3
@@ -23,10 +41,6 @@ SCK           12
 MISO          13
 MOSI          11
 CS            10
-    gpio.12 SCK Defined as SPI0_SCK
-    gpio.11 MOSI Defined as SPI0_MOSI
-    gpio.13 MISO Defined as SPI0_MISO
-    gpio.10 CSO Defined as SPI_CS0
     */
 
 
@@ -48,7 +62,7 @@ typedef enum {
 } CAM_IMAGE_MODE;
 */
 CAM_IMAGE_MODE CameraMode=CAM_IMAGE_MODE_320X320;
-unsigned long startMillis = 0;
+
 
 
 
